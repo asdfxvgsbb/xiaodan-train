@@ -31,7 +31,7 @@ jobs:
           XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
           HF_ENDPOINT: https://huggingface.co
           XDAN_DIR: ${{ github.workspace }}/xd
-          XDAN_STEPS: "400000"
+          XDAN_STEPS: "300000"
           XDAN_BUDGET: "18000"
           XDAN_THREADS: "2"
           XDAN_B: "12"
