@@ -22,6 +22,7 @@ jobs:
       - name: train
         env:
           XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
+          XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
           HF_ENDPOINT: https://huggingface.co
           XDAN_DIR: ${{ github.workspace }}/xd
           XDAN_STEPS: "200000"
