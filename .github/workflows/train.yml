@@ -2,6 +2,12 @@ name: xiaodan-train
 
 on:
   workflow_dispatch:
+    inputs:
+      from_scratch:
+        description: '从头训练 (1=从头, 0=续训)'
+        required: false
+        default: '0'
+        type: string
   push:
     branches: [ main ]
 
@@ -32,7 +38,7 @@ jobs:
           XDAN_LR: "0.003"
           XDAN_UPLOAD_EVERY: "500"
           XDAN_CORPUS: "corpus_wiki20m.txt"
-          XDAN_FROM_SCRATCH: "1"
+          XDAN_FROM_SCRATCH: "${{ github.event.inputs.from_scratch || '0' }}"
         run: |
           python - <<'PY'
           import os
