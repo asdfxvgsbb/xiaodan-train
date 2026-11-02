@@ -1,0 +1,52 @@
+name: xiaodan-sft
+
+on:
+  workflow_dispatch:
+    inputs:
+      sft_steps:
+        description: 'SFT 目标总步数'
+        required: false
+        default: '3000'
+        type: string
+  push:
+    branches: [ main ]
+
+jobs:
+  sft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: install
+        run: pip install -q huggingface_hub numpy
+
+      - name: sft
+        env:
+          XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
+          XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          HF_ENDPOINT: https://huggingface.co
+          XDAN_DIR: ${{ github.workspace }}/xd_sft
+          XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '3000' }}"
+          XDAN_BUDGET: "18000"
+          XDAN_THREADS: "2"
+          XDAN_B: "12"
+          XDAN_LR: "0.001"
+          XDAN_UPLOAD_SEC: "3600"
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download(
+              "jinax/xiaodan-v9", "cloud_run_sft.py",
+              repo_type="model",
+              token=os.environ["XDAN_TOKEN"],
+              endpoint=os.environ["HF_ENDPOINT"])
+          print("cloud_run_sft.py ->", p)
+          exec(open(p, encoding="utf-8").read())
+          run()
+          PY
