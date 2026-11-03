@@ -1,0 +1,16 @@
+name: Check Runner
+on:
+  workflow_dispatch:
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 查看硬件
+        run: |
+          echo "=== vCPU ==="
+          nproc
+          echo "=== CPU 详细 ==="
+          lscpu
+          echo "=== 内存 ==="
+          free -h
