@@ -1,0 +1,34 @@
+name: Bench Speed
+on:
+  workflow_dispatch:
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 装 numpy 和依赖
+        run: |
+          pip install numpy --quiet
+          python3 -c "import numpy; print('numpy', numpy.__version__, '线程', numpy.show_config())"
+      - name: 跑基准
+        run: |
+          python3 - <<'PY'
+import numpy as np, time, os
+# 模拟小蛋训练 GEMM 基准 (T=64,D=160,B=12)
+T,D,B=64,160,12
+# 矩阵乘: (B*T,D)x(D,D)
+A=np.random.rand(B*T,D).astype(np.float32)
+W=np.random.rand(D,D).astype(np.float32)
+# 跑 20 次
+st=time.time()
+for _ in range(20):
+    C=A@W
+print('20次小GEMM(B*T=768, D=160): %.4f 秒' % (time.time()-st))
+print('单次: %.6f 秒' % ((time.time()-st)/20))
+# 4线程 vs 1线程
+import multiprocessing
+print('OS 线程数:', multiprocessing.cpu_count())
+# numpy 线程
+print('numpy 线程:', np.__config__.get('BLAS') if hasattr(np.__config__,'get') else '?')
+PY
