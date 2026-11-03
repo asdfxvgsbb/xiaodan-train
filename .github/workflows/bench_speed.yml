@@ -6,12 +6,9 @@ jobs:
   bench:
     runs-on: ubuntu-latest
     steps:
-      - name: 装numpy
-        run: |
-          python3 -m pip install --quiet numpy
       - name: 跑基准
         run: |
-          python3 -c "
+          python3 - <<'PY'
 import numpy as np, time, multiprocessing
 print('numpy', np.__version__)
 print('vCPU', multiprocessing.cpu_count())
@@ -21,6 +18,6 @@ W=np.random.rand(D,D).astype(np.float32)
 st=time.time()
 for _ in range(100):
     C=A@W
-print('100次小GEMM(B*T=768, D=160):', round(time.time()-st,4), '秒')
+print('100次小GEMM:', round(time.time()-st,4), '秒')
 print('单次:', round((time.time()-st)/100,6), '秒')
-"
+PY
