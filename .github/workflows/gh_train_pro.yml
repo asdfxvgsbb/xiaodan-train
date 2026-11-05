@@ -8,8 +8,6 @@ on:
         required: false
         default: '1'
         type: string
-  push:
-    branches: [ main ]
 
 jobs:
   train:
