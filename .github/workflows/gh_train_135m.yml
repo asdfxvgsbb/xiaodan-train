@@ -1,0 +1,58 @@
+name: xiaodan-train-135m
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_scratch:
+        description: '从头训练 (1=从头, 0=续训)'
+        required: false
+        default: '1'
+        type: string
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: install
+        run: pip install -q huggingface_hub numpy
+
+      - name: train
+        env:
+          XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
+          XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          HF_ENDPOINT: https://huggingface.co
+          XDAN_DIR: ${{ github.workspace }}/xd
+          XDAN_REPO: jinax/xiaodan-135m
+          XDAN_MODEL: xiaodan_135m.pkl
+          XDAN_STEPS: "5000"
+          XDAN_BUDGET: "18000"
+          XDAN_THREADS: "2"
+          XDAN_B: "12"
+          XDAN_LR: "0.003"
+          XDAN_UPLOAD_EVERY: "250"
+          XDAN_CORPUS: "corpus_wiki.txt"
+          XDAN_FROM_SCRATCH: "${{ github.event.inputs.from_scratch || '1' }}"
+          XDAN_D: "576"
+          XDAN_NB: "30"
+          XDAN_F: "2304"
+          XDAN_T: "96"
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download(
+              "jinax/xiaodan-135m", "cloud_run_135m.py",
+              repo_type="model",
+              token=os.environ["XDAN_TOKEN"],
+              endpoint=os.environ["HF_ENDPOINT"])
+          print("cloud_run_135m.py ->", p)
+          exec(open(p, encoding="utf-8").read())
+          run()
+          PY
