@@ -27,7 +27,7 @@ jobs:
         env:
           XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
           XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          HF_ENDPOINT: https://hf-mirror.com
+          HF_ENDPOINT: https://huggingface.co
           XDAN_DIR: ${{ github.workspace }}/xd_sft
           XDAN_REPO: jinax/xiaodan-135m
           XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '3000' }}"
