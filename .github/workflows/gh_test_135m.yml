@@ -1,0 +1,79 @@
+name: xiaodan-test-135m
+
+on:
+  workflow_dispatch:
+    inputs:
+      question:
+        description: '测试问题'
+        required: false
+        default: '你好，你是谁？'
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: install
+        run: pip install -q huggingface_hub numpy
+
+      - name: test_chat
+        env:
+          XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT: https://huggingface.co
+          XDAN_REPO: "jinax/xiaodan-135m"
+          XDAN_QUESTION: ${{ github.event.inputs.question || '你好，你是谁？' }}
+        run: |
+          python - <<'PY'
+          import os, json, pickle
+          import numpy as np
+          os.environ["HF_ENDPOINT"] = os.environ.get("HF_ENDPOINT", "https://huggingface.co")
+          from huggingface_hub import hf_hub_download
+
+          repo = os.environ["XDAN_REPO"]
+          token = os.environ["XDAN_TOKEN"]
+          # 下载模型和词表
+          mp = hf_hub_download(repo, "xiaodan_135m.pkl", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
+          vp = hf_hub_download(repo, "vocab_wiki.json", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
+          tp = hf_hub_download(repo, "train_my_ai_v8.py", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
+
+          # 加载词表
+          chars = json.load(open(vp, encoding="utf-8"))
+          stoi = {c: i for i, c in enumerate(chars)}
+          itos = {i: c for c, i in stoi.items()}
+
+          # 加载模型
+          d = pickle.load(open(mp, "rb"))
+          cfg = dict(d["cfg"])
+          cfg["mask"] = np.triu(np.ones((cfg["T"], cfg["T"])), 1).astype(bool)
+          p = d["p"]
+          t = cfg.get("_opt", {}).get("t", 0)
+          sft = cfg.get("_opt", {}).get("sft_t", 0)
+          print(f"模型: 预训练 {t} 步, SFT {sft} 步, D={cfg.get('D')} NB={cfg.get('NB')} T={cfg.get('T')}")
+
+          # 从 train_my_ai_v8.py 导入 generate
+          import importlib.util
+          spec = importlib.util.spec_from_file_location("train", tp)
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+
+          # 测试多个问题
+          questions = [
+              os.environ.get("XDAN_QUESTION", "你好，你是谁？"),
+              "你会做什么？",
+              "中国的首都是哪里？",
+              "苹果和香蕉哪个好吃？",
+          ]
+          for q in questions:
+              prompt = "用户：%s\n小蛋：" % q
+              print("\n" + "="*50)
+              print(f"Q: {q}")
+              out = mod.generate(p, cfg, itos, stoi, prompt, n=60, temp=0.85)
+              print(f"A: {out}")
+          PY
