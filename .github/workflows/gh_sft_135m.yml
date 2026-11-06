@@ -30,7 +30,7 @@ jobs:
           HF_ENDPOINT: https://huggingface.co
           XDAN_DIR: ${{ github.workspace }}/xd_sft
           XDAN_REPO: jinax/xiaodan-135m
-          XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '3000' }}"
+          XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '1500' }}"
           XDAN_BUDGET: "18000"
           XDAN_THREADS: "2"
           XDAN_B: "12"
