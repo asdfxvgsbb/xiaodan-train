@@ -27,7 +27,7 @@ jobs:
         env:
           XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
           XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          HF_ENDPOINT: https://huggingface.co
+          HF_ENDPOINT: https://hf-mirror.com
           XDAN_DIR: ${{ github.workspace }}/xd_sft
           XDAN_REPO: jinax/xiaodan-135m
           XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '3000' }}"
@@ -36,7 +36,7 @@ jobs:
           XDAN_B: "12"
           XDAN_LR: "0.001"
           XDAN_UPLOAD_SEC: "1800"
-          XDAN_SFT_RESET: "1"
+          # XDAN_SFT_RESET 移除（允许从 sft_t 续跑）
         run: |
           python - <<'PY'
           import os
