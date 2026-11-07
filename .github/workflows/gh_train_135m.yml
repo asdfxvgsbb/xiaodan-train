@@ -31,7 +31,7 @@ jobs:
           XDAN_DIR: ${{ github.workspace }}/xd
           XDAN_REPO: jinax/xiaodan-135m
           XDAN_MODEL: xiaodan_135m.pkl
-          XDAN_STEPS: "5000"
+          XDAN_STEPS: "20000"
           XDAN_BUDGET: "18000"
           XDAN_THREADS: "2"
           XDAN_B: "12"
