@@ -33,14 +33,23 @@ jobs:
           TOKEN = os.environ["XDAN_TOKEN"]
           EP = os.environ["HF_ENDPOINT"]
 
-          # 1) 下载 BELLE 原始数据集
+          # 1) 下载 BELLE 原始数据集（JSONL格式：每行一个JSON）
           print("[1/4] 下载 BELLE 0.5M ...")
           d = snapshot_download("BelleGroup/train_0.5M_CN", repo_type="dataset",
                                 token=TOKEN, endpoint=EP)
           belle_path = os.path.join(d, "Belle_open_source_0.5M.json")
+          print("  文件大小(MB): %.1f" % (os.path.getsize(belle_path)/1048576))
+          belle = []
           with open(belle_path, encoding="utf-8") as f:
-              belle = json.load(f)
-          print("  BELLE 原始条数:", len(belle))
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  try:
+                      belle.append(json.loads(line))
+                  except Exception:
+                      pass
+          print("  BELLE 解析条数:", len(belle))
 
           sample = int(os.environ.get("SAMPLE", "0"))
           if sample and sample > 0:
