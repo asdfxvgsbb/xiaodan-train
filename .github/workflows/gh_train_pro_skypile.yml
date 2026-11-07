@@ -35,7 +35,7 @@ jobs:
           XDAN_B: "8"
           XDAN_LR: "0.003"
           XDAN_UPLOAD_EVERY: "500"
-          XDAN_CORPUS: "corpus_skypile.txt"
+          XDAN_CORPUS: "corpus_skypile_train.txt"
           XDAN_D: "896"
           XDAN_NB: "20"
           XDAN_F: "3584"
