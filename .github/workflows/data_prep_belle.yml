@@ -1,0 +1,105 @@
+name: data-prep-belle
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample:
+        description: 'BELLE采样条数(0=全量)'
+        required: false
+        default: '0'
+        type: string
+
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install
+        run: pip install -q huggingface_hub
+      - name: convert-belle
+        env:
+          XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT: https://hf-mirror.com
+          SAMPLE: "${{ github.event.inputs.sample || '0' }}"
+        run: |
+          python - <<'PY'
+          import os, json, random
+          from huggingface_hub import snapshot_download, hf_hub_download, HfApi
+
+          TOKEN = os.environ["XDAN_TOKEN"]
+          EP = os.environ["HF_ENDPOINT"]
+
+          # 1) 下载 BELLE 原始数据集
+          print("[1/4] 下载 BELLE 0.5M ...")
+          d = snapshot_download("BelleGroup/train_0.5M_CN", repo_type="dataset",
+                                token=TOKEN, endpoint=EP)
+          belle_path = os.path.join(d, "Belle_open_source_0.5M.json")
+          with open(belle_path, encoding="utf-8") as f:
+              belle = json.load(f)
+          print("  BELLE 原始条数:", len(belle))
+
+          sample = int(os.environ.get("SAMPLE", "0"))
+          if sample and sample > 0:
+              random.seed(42)
+              belle = random.sample(belle, min(sample, len(belle)))
+              print("  采样后条数:", len(belle))
+
+          # 2) 下载现有 qa_all.json 作为底子
+          print("[2/4] 下载现有 qa_all.json ...")
+          qa_path = hf_hub_download("jinax/xiaodan-135m", "qa_all.json",
+                                    repo_type="model", token=TOKEN, endpoint=EP)
+          with open(qa_path, encoding="utf-8") as f:
+              qa = json.load(f)
+          print("  原 qa_all 条数:", len(qa))
+
+          # 3) 转换 BELLE -> {q, a}
+          #    BELLE 字段: instruction / input / output
+          print("[3/4] 转换 BELLE -> {q,a} ...")
+          seen = set()
+          merged = list(qa)
+          drop = 0
+          for it in belle:
+              if not isinstance(it, dict):
+                  drop += 1
+                  continue
+              inst = (it.get("instruction") or "").strip()
+              inp = (it.get("input") or "").strip()
+              out = (it.get("output") or "").strip()
+              q = inst if not inp else inst + " " + inp
+              q = q.replace("\n", " ").strip()
+              a = out.replace("\n", " ").strip()
+              if not q or not a:
+                  drop += 1
+                  continue
+              if len(q) < 4 or len(q) > 200:
+                  drop += 1
+                  continue
+              if len(a) < 2 or len(a) > 400:
+                  drop += 1
+                  continue
+              key = (q[:40], a[:40])
+              if key in seen:
+                  drop += 1
+                  continue
+              seen.add(key)
+              merged.append({"q": q, "a": a})
+          print("  转换完成: 丢弃 %d, 合并后总条数 %d" % (drop, len(merged)))
+
+          # 4) 上传合并后的 qa_all.json（先备份原文件）
+          print("[4/4] 上传 ...")
+          api = HfApi(token=TOKEN, endpoint=EP)
+          api.upload_file(path_or_fileobj=qa_path, path_in_repo="qa_all_original_backup.json",
+                          repo_id="jinax/xiaodan-135m", repo_type="model",
+                          commit_message="backup original qa_all")
+          tmp = "/tmp/qa_all.json"
+          with open(tmp, "w", encoding="utf-8") as f:
+              json.dump(merged, f, ensure_ascii=False)
+          api.upload_file(path_or_fileobj=tmp, path_in_repo="qa_all.json",
+                          repo_id="jinax/xiaodan-135m", repo_type="model",
+                          commit_message="merge belle %d -> total %d" % (len(belle), len(merged)))
+          print("完成! 上传成功, 总条数:", len(merged))
+          PY
