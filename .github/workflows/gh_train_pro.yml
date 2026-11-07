@@ -42,7 +42,7 @@ jobs:
           XDAN_T: "512"
           XDAN_FROM_SCRATCH: "${{ github.event.inputs.from_scratch || '1' }}"
           XDAN_REPO: "jinax/xiaodan-pro"
-          XDAN_DATA_REPO: "jinax/xiaodan-v9"
+          XDAN_DATA_REPO: "jinax/xiaodan-pro"
         run: |
           python - <<'PY'
           import os
