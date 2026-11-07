@@ -40,7 +40,7 @@ jobs:
           XDAN_NB: "30"
           XDAN_F: "2304"
           XDAN_T: "96"
-          XDAN_MAX_BLOCKS: "10000"
+          XDAN_MAX_BLOCKS: "50000"
           XDAN_FROM_SCRATCH: "${{ github.event.inputs.from_scratch || '1' }}"
           XDAN_REPO: "jinax/xiaodan-pro"
           XDAN_DATA_REPO: "jinax/xiaodan-135m"
