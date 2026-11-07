@@ -23,7 +23,7 @@ jobs:
       - name: convert-belle
         env:
           XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_ENDPOINT: https://hf-mirror.com
+          HF_ENDPOINT: https://huggingface.co
           SAMPLE: "${{ github.event.inputs.sample || '0' }}"
         run: |
           python - <<'PY'
