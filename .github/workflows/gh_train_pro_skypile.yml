@@ -1,0 +1,61 @@
+name: xiaodan-train-pro-skypile
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_scratch:
+        description: '从头训练 (1=从头, 0=续训)'
+        required: false
+        default: '1'
+        type: string
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: install
+        run: pip install -q huggingface_hub numpy
+
+      - name: train
+        env:
+          XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
+          XDAN_GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          HF_ENDPOINT: https://huggingface.co
+          XDAN_DIR: ${{ github.workspace }}/xd
+          XDAN_STEPS: "20000"
+          XDAN_BUDGET: "18000"
+          XDAN_THREADS: "2"
+          XDAN_B: "8"
+          XDAN_LR: "0.003"
+          XDAN_UPLOAD_EVERY: "500"
+          XDAN_CORPUS: "corpus_skypile.txt"
+          XDAN_D: "896"
+          XDAN_NB: "20"
+          XDAN_F: "3584"
+          XDAN_T: "512"
+          XDAN_MAX_BLOCKS: "30000"
+          XDAN_FROM_SCRATCH: "${{ github.event.inputs.from_scratch || '1' }}"
+          XDAN_REPO: "jinax/xiaodan-pro"
+          XDAN_DATA_REPO: "jinax/xiaodan-135m"
+          XDAN_MODEL: "xiaodan_pro_skypile.pkl"
+          XDAN_WF: "gh_train_pro_skypile.yml"
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download(
+              "jinax/xiaodan-pro", "cloud_run_pro_skypile.py",
+              repo_type="model",
+              token=os.environ["XDAN_TOKEN"],
+              endpoint=os.environ["HF_ENDPOINT"])
+          print("cloud_run_pro_skypile.py ->", p)
+          exec(open(p, encoding="utf-8").read())
+          run()
+          PY
