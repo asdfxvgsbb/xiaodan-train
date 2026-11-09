@@ -1,0 +1,46 @@
+name: sync-model-135m
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install
+        run: pip install -q huggingface_hub
+      - name: sync final model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os, time
+          from huggingface_hub import hf_hub_download, HfApi
+          tok = os.environ["HF_TOKEN"]
+          print("下载最终版 (20000步, 1973MB)...")
+          p = hf_hub_download("jinax/xiaodan-pro", "xiaodan_135m_skypile.pkl", repo_type="model", token=tok, endpoint="https://huggingface.co")
+          print("已下载:", p, os.path.getsize(p))
+          ok = False
+          for ep in ["https://huggingface.co", "https://hf-mirror.com"]:
+            for i in range(3):
+              try:
+                HfApi(token=tok, endpoint=ep).upload_file(
+                    path_or_fileobj=p,
+                    path_in_repo="xiaodan_135m.pkl",
+                    repo_id="jinax/xiaodan-135m", repo_type="model",
+                    commit_message="sync: 20000步 SkyPile 最终版覆盖旧5000步")
+                print("上传成功 via", ep)
+                ok = True
+                break
+              except Exception as e:
+                print(ep, "try", i+1, "失败:", str(e)[:80])
+                time.sleep(5)
+            if ok: break
+          if not ok:
+            raise SystemExit("上传失败")
+          print("SYNC_DONE")
+          PY
