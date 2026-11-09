@@ -27,7 +27,7 @@ jobs:
         env:
           XDAN_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_ENDPOINT: https://huggingface.co
-          XDAN_REPO: "jinax/xiaodan-135m"
+          XDAN_REPO: "jinax/xiaodan-pro"
           XDAN_QUESTION: ${{ github.event.inputs.question || '你好，你是谁？' }}
         run: |
           python - <<'PY'
@@ -39,8 +39,8 @@ jobs:
           repo = os.environ["XDAN_REPO"]
           token = os.environ["XDAN_TOKEN"]
           # 下载模型和词表
-          mp = hf_hub_download(repo, "xiaodan_135m.pkl", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
-          vp = hf_hub_download(repo, "vocab_wiki.json", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
+          mp = hf_hub_download(repo, "xiaodan_135m_skypile.pkl", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
+          vp = hf_hub_download(repo, "vocab_skypile.json", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
           tp = hf_hub_download(repo, "train_my_ai_v8.py", repo_type="model", token=token, endpoint=os.environ["HF_ENDPOINT"])
 
           # 加载词表
