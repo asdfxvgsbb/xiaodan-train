@@ -30,23 +30,16 @@ jobs:
           HF_ENDPOINT: https://huggingface.co
           XDAN_DIR: ${{ github.workspace }}/xd_sft
           XDAN_REPO: jinax/xiaodan-135m
-          XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '1500' }}"
+          XDAN_MODEL_REPO: jinax/xiaodan-pro
+          XDAN_BASE_MODEL: xiaodan_135m_skypile.pkl
+          XDAN_VOCAB: vocab_skypile.json
+          XDAN_SFT_STEPS: "${{ github.event.inputs.sft_steps || '3000' }}"
           XDAN_BUDGET: "18000"
           XDAN_THREADS: "2"
           XDAN_B: "12"
           XDAN_LR: "0.001"
           XDAN_UPLOAD_SEC: "1800"
-          # XDAN_SFT_RESET 移除（允许从 sft_t 续跑）
+          XDAN_SFT_RESET: "1"
         run: |
-          python - <<'PY'
-          import os
-          from huggingface_hub import hf_hub_download
-          p = hf_hub_download(
-              "jinax/xiaodan-135m", "cloud_run_sft_135m.py",
-              repo_type="model",
-              token=os.environ["XDAN_TOKEN"],
-              endpoint=os.environ["HF_ENDPOINT"])
-          print("cloud_run_sft_135m.py ->", p)
-          exec(open(p, encoding="utf-8").read())
-          run()
-          PY
+          # 脚本已随仓库 checkout，直接运行（不再从 HF 拉，避免版本漂移）
+          python cloud_run_sft_135m.py
