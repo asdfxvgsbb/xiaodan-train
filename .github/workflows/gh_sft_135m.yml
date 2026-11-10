@@ -39,7 +39,7 @@ jobs:
           XDAN_B: "12"
           XDAN_LR: "0.001"
           XDAN_UPLOAD_SEC: "1800"
-          XDAN_SFT_RESET: "1"
+          XDAN_SFT_RESET: "0"
         run: |
           # 脚本已随仓库 checkout，直接运行（不再从 HF 拉，避免版本漂移）
           python cloud_run_sft_135m.py
