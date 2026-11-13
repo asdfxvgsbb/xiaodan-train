@@ -96,19 +96,46 @@ def prepare():
     else:
         print("[本地] SFT 数据/脚本已在工作目录，跳过下载")
 
-    # 3) 统一工作文件名：基础模型 -> xiaodan_135m.pkl（SFT 写回该文件）
-    #    注意：仅当重置或文件缺失时才覆盖，续跑（非 reset）时保留已有 SFT 进度
+    # 3) 统一工作文件名：xiaodan_135m.pkl（SFT 写回该文件）
+    #    关键修复：GitHub Actions 每次 run 是全新环境，续跑必须从 REPO 拉取
+    #    最新 SFT checkpoint（xiaodan_135m.pkl）作为起点，否则 SFT 进度归零
     base_src = os.path.join(work, BASE_MODEL)
     work_model = os.path.join(work, WORK_MODEL)
-    if not os.path.exists(base_src):
-        raise SystemExit("缺少基础模型: %s（检查 MODEL_REPO=%s）" % (BASE_MODEL, MODEL_REPO))
-    if reset or not os.path.exists(work_model):
-        print("[工作] %s -> %s（%s）" % (BASE_MODEL, WORK_MODEL, "重置" if reset else "首次"))
+    if reset:
+        # 重置：从基础预训练模型开始
+        if not os.path.exists(base_src):
+            print("[下载] 从 %s 拉取基础模型 %s ..." % (MODEL_REPO, BASE_MODEL))
+            snapshot_download(MODEL_REPO, repo_type="model", token=TOKEN,
+                              local_dir=work, endpoint=ENDPOINT,
+                              allow_patterns=[BASE_MODEL])
+        if not os.path.exists(base_src):
+            raise SystemExit("缺少基础模型: %s（检查 MODEL_REPO=%s）" % (BASE_MODEL, MODEL_REPO))
+        print("[工作] %s -> %s（重置）" % (BASE_MODEL, WORK_MODEL))
         shutil.copyfile(base_src, work_model)
-    else:
+    elif os.path.exists(work_model):
         print("[工作] 已有 %s，保留（续跑，跳过复制）" % WORK_MODEL)
+    else:
+        # 续跑（非 reset）：优先从 REPO 拉最新 SFT checkpoint 作为续跑起点
+        try:
+            print("[下载] 从 %s 拉取最新 SFT checkpoint %s 作为续跑起点 ..." % (REPO, WORK_MODEL))
+            snapshot_download(REPO, repo_type="model", token=TOKEN,
+                              local_dir=work, endpoint=ENDPOINT,
+                              allow_patterns=[WORK_MODEL])
+        except Exception as e:
+            print("[下载] 拉取 SFT checkpoint 失败: %s" % str(e)[:100])
+        if not os.path.exists(work_model):
+            # fallback：仓库暂无 checkpoint（首次运行），改用基础模型
+            if not os.path.exists(base_src):
+                print("[下载] 从 %s 拉取基础模型 %s ..." % (MODEL_REPO, BASE_MODEL))
+                snapshot_download(MODEL_REPO, repo_type="model", token=TOKEN,
+                                  local_dir=work, endpoint=ENDPOINT,
+                                  allow_patterns=[BASE_MODEL])
+            if not os.path.exists(base_src):
+                raise SystemExit("缺少基础模型: %s（检查 MODEL_REPO=%s）" % (BASE_MODEL, MODEL_REPO))
+            print("[工作] 仓库无 SFT checkpoint，改用基础模型（首次）")
+            shutil.copyfile(base_src, work_model)
 
-    missing = [f for f in SFT_FILES + [VOCAB_FILE]
+    missing = [f for f in SFT_FILES
                if not os.path.exists(os.path.join(work, f))]
     if missing:
         raise SystemExit("缺少文件: %s" % ", ".join(missing))
@@ -191,7 +218,11 @@ def trigger_next_run():
         print("[续跑] 查询活跃 run 失败: %s" % str(e)[:100])
 
     url = "https://api.github.com/repos/%s/%s/actions/workflows/gh_sft_135m.yml/dispatches" % (owner, repo)
-    body = _json.dumps({"ref": "main"}).encode()
+    # 关键修复：必须把目标步数传下去，否则下个 run 用 workflow 默认值 3000
+    step_target = os.environ.get("XDAN_SFT_STEPS", "3000")
+    body = _json.dumps({"ref": "main",
+                        "inputs": {"sft_steps": step_target}}).encode()
+    print("[续跑] 触发目标步数 sft_steps=%s" % step_target)
     req = urllib.request.Request(url, data=body, method="POST", headers={
         "Authorization": "token " + gh_token,
         "Accept": "application/vnd.github+json",
